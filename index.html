@@ -1,0 +1,2613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sort – Property Management Portal</title>
+    <link rel="icon" type="image/png" href="sort-logo.png">
+    <link rel="apple-touch-icon" href="sort-logo.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --blue: #2196F3;
+            --blue-light: #E3F2FD;
+            --blue-hover: #1976D2;
+            --green: #4CAF50;
+            --green-light: #E8F5E9;
+            --orange: #F59E0B;
+            --orange-light: #FFFBEB;
+            --red: #EF4444;
+            --red-light: #FEF2F2;
+            --purple: #8B5CF6;
+            --purple-light: #EDE9FE;
+            --teal: #14B8A6;
+            --teal-light: #CCFBF1;
+            --gray-50: #F8FAFC;
+            --gray-100: #F1F5F9;
+            --gray-200: #E2E8F0;
+            --gray-300: #CBD5E1;
+            --gray-400: #94A3B8;
+            --gray-500: #64748B;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-900: #0F172A;
+            --white: #FFFFFF;
+            --radius: 12px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            line-height: 1.5;
+        }
+
+        /* ===== AUTH SCREEN ===== */
+        .auth-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+        .auth-screen.hidden { display: none; }
+
+        .auth-box {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 440px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .auth-box .logo-icon { width: 64px; height: 64px; margin: 0 auto 20px; border-radius: 16px; overflow: hidden; }
+        .auth-box .logo-icon img { width: 100%; height: 100%; object-fit: cover; }
+        .auth-box h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+        .auth-box .tagline { color: var(--gray-500); font-size: 14px; margin-bottom: 32px; }
+
+        .google-btn {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 14px 28px; border: 2px solid var(--gray-200); border-radius: 12px;
+            background: var(--white); cursor: pointer; font-size: 16px; font-weight: 600;
+            color: var(--gray-700); transition: all 0.2s; font-family: inherit;
+        }
+        .google-btn:hover { border-color: var(--blue); background: var(--blue-light); }
+        .google-btn svg { width: 20px; height: 20px; }
+
+        .auth-footer { color: var(--gray-400); font-size: 12px; margin-top: 28px; line-height: 1.6; }
+
+        /* ===== LAYOUT ===== */
+        .app { display: flex; min-height: 100vh; }
+        .app.hidden { display: none; }
+
+        .sidebar {
+            width: 260px; background: var(--white); border-right: 1px solid var(--gray-200);
+            padding: 24px 0; position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto;
+            z-index: 100;
+        }
+        .sidebar-logo { padding: 0 24px 24px; border-bottom: 1px solid var(--gray-200); margin-bottom: 16px; }
+        .sidebar-logo h1 { font-size: 20px; font-weight: 700; }
+        .sidebar-logo h1 span { color: var(--blue); }
+        .sidebar-logo p { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+
+        .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 24px; cursor: pointer; color: var(--gray-500);
+            font-size: 14px; font-weight: 500; transition: all 0.15s;
+            border-left: 3px solid transparent;
+        }
+        .nav-item:hover { background: var(--gray-50); color: var(--gray-700); }
+        .nav-item.active { color: var(--blue); background: var(--blue-light); border-left-color: var(--blue); }
+        .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+        .sidebar-footer {
+            position: absolute; bottom: 24px; left: 24px; right: 24px;
+        }
+        .sidebar-user { font-size: 12px; color: var(--gray-500); margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sign-out-btn {
+            display: block; width: 100%; padding: 8px; border: 1px solid var(--gray-200);
+            border-radius: 8px; background: var(--white); color: var(--gray-500);
+            font-size: 12px; cursor: pointer; transition: all 0.15s; font-family: inherit;
+        }
+        .sign-out-btn:hover { background: var(--red-light); color: var(--red); border-color: var(--red); }
+
+        .main { margin-left: 260px; flex: 1; padding: 32px; }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+        .page-header h2 { font-size: 24px; font-weight: 700; }
+        .page-header p { color: var(--gray-500); font-size: 14px; margin-top: 2px; }
+
+        /* ===== STATS ===== */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+        .stat-card { background: var(--white); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+        .stat-card .icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+        .stat-card .icon.blue { background: var(--blue-light); color: var(--blue); }
+        .stat-card .icon.green { background: var(--green-light); color: var(--green); }
+        .stat-card .icon.orange { background: var(--orange-light); color: var(--orange); }
+        .stat-card .icon.purple { background: var(--purple-light); color: var(--purple); }
+        .stat-card .icon.teal { background: var(--teal-light); color: var(--teal); }
+        .stat-card .icon.red { background: var(--red-light); color: var(--red); }
+        .stat-card .number { font-size: 28px; font-weight: 700; }
+        .stat-card .label { color: var(--gray-500); font-size: 13px; margin-top: 2px; }
+        .stat-card .trend { font-size: 12px; margin-top: 4px; }
+        .stat-card .trend.up { color: var(--green); }
+        .stat-card .trend.down { color: var(--red); }
+
+        /* ===== CARDS ===== */
+        .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 24px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--gray-100); }
+        .card-header h3 { font-size: 16px; font-weight: 600; }
+        .card-body { padding: 24px; }
+
+        /* ===== CHART CARDS ===== */
+        .chart-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-bottom: 24px; }
+        .chart-card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; }
+        .chart-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+        .chart-card .chart-subtitle { font-size: 12px; color: var(--gray-400); margin-bottom: 16px; }
+        .chart-card canvas { max-height: 280px; }
+        .chart-card.full-width { grid-column: 1 / -1; }
+
+        /* Health Score */
+        .health-score { display: flex; align-items: center; gap: 24px; padding: 20px 0; }
+        .health-ring { position: relative; width: 120px; height: 120px; flex-shrink: 0; }
+        .health-ring canvas { width: 120px !important; height: 120px !important; }
+        .health-ring .score-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+        .health-ring .score-number { font-size: 32px; font-weight: 700; line-height: 1; }
+        .health-ring .score-label { font-size: 11px; color: var(--gray-500); }
+        .health-factors { flex: 1; }
+        .health-factor { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--gray-100); }
+        .health-factor:last-child { border-bottom: none; }
+        .health-factor .factor-name { font-size: 13px; color: var(--gray-600); }
+        .health-factor .factor-bar { width: 100px; height: 6px; background: var(--gray-100); border-radius: 3px; margin: 0 12px; }
+        .health-factor .factor-bar .fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+        .health-factor .factor-value { font-size: 13px; font-weight: 600; min-width: 36px; text-align: right; }
+
+        /* ===== DATE RANGE FILTER ===== */
+        .date-filter { display: flex; gap: 8px; }
+        .date-filter button {
+            padding: 6px 14px; border: 1px solid var(--gray-200); border-radius: 8px;
+            background: var(--white); font-size: 13px; font-weight: 500; cursor: pointer;
+            color: var(--gray-500); transition: all 0.15s; font-family: inherit;
+        }
+        .date-filter button.active { background: var(--blue); color: white; border-color: var(--blue); }
+        .date-filter button:hover:not(.active) { background: var(--gray-50); color: var(--gray-700); }
+
+        /* ===== BUTTONS ===== */
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; font-family: inherit; }
+        .btn-primary { background: var(--blue); color: white; }
+        .btn-primary:hover { background: var(--blue-hover); }
+        .btn-secondary { background: var(--gray-100); color: var(--gray-700); }
+        .btn-secondary:hover { background: var(--gray-200); }
+        .btn-danger { background: var(--red-light); color: var(--red); }
+        .btn-danger:hover { background: #FEE2E2; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+
+        /* ===== TABLE ===== */
+        table { width: 100%; border-collapse: collapse; }
+        th { padding: 10px 16px; text-align: left; font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; background: var(--gray-50); }
+        td { padding: 14px 16px; border-top: 1px solid var(--gray-100); font-size: 14px; }
+        tr:hover td { background: var(--gray-50); }
+        .empty-row { text-align: center; padding: 40px 16px; color: var(--gray-400); }
+
+        /* ===== TAGS ===== */
+        .tag { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .tag-blue { background: var(--blue-light); color: var(--blue); }
+        .tag-green { background: var(--green-light); color: var(--green); }
+        .tag-orange { background: var(--orange-light); color: var(--orange); }
+        .tag-red { background: var(--red-light); color: var(--red); }
+        .tag-purple { background: var(--purple-light); color: var(--purple); }
+
+        /* ===== AMENITY CHIPS ===== */
+        .amenity-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .amenity-chip { background: var(--gray-100); color: var(--gray-700); padding: 4px 10px; border-radius: 6px; font-size: 12px; }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--white); border-radius: 16px; padding: 32px;
+            width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg);
+        }
+        .modal h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .modal .subtitle { color: var(--gray-500); font-size: 14px; margin-bottom: 24px; }
+
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px; }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%; padding: 10px 14px; border: 1px solid var(--gray-200); border-radius: 8px;
+            font-size: 14px; font-family: inherit; transition: border-color 0.15s;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-group .hint { font-size: 12px; color: var(--gray-400); margin-top: 4px; }
+
+        .modal-actions { display: flex; gap: 12px; margin-top: 28px; }
+        .modal-actions .btn { flex: 1; justify-content: center; padding: 12px; }
+
+        /* ===== AVAILABILITY HEATMAP ===== */
+        .avail-section { margin-top: 8px; margin-bottom: 18px; }
+        .avail-toggle {
+            display: flex; align-items: center; gap: 8px; cursor: pointer;
+            padding: 10px 14px; background: var(--gray-50); border-radius: 10px;
+            border: 1px solid var(--gray-200); transition: all 0.15s;
+        }
+        .avail-toggle:hover { background: var(--blue-light); border-color: var(--blue); }
+        .avail-toggle svg { width: 18px; height: 18px; color: var(--blue); flex-shrink: 0; }
+        .avail-toggle .avail-toggle-text { font-size: 13px; font-weight: 600; color: var(--gray-700); }
+        .avail-toggle .avail-toggle-sub { font-size: 11px; color: var(--gray-400); margin-left: auto; }
+        .avail-content { display: none; margin-top: 12px; }
+        .avail-content.open { display: block; }
+        .avail-grid {
+            display: grid; grid-template-columns: 70px repeat(4, 1fr); gap: 4px;
+            font-size: 12px;
+        }
+        .avail-grid .avail-header { font-weight: 600; color: var(--gray-500); text-align: center; padding: 6px 2px; font-size: 11px; }
+        .avail-grid .avail-day { font-weight: 600; color: var(--gray-700); padding: 8px 4px; display: flex; align-items: center; }
+        .avail-grid .avail-cell {
+            text-align: center; padding: 8px 4px; border-radius: 6px;
+            font-weight: 600; font-size: 13px; transition: all 0.15s; cursor: default;
+        }
+        .avail-cell.heat-0 { background: var(--gray-50); color: var(--gray-400); }
+        .avail-cell.heat-1 { background: #DBEAFE; color: #2563EB; }
+        .avail-cell.heat-2 { background: #BFDBFE; color: #1D4ED8; }
+        .avail-cell.heat-3 { background: #93C5FD; color: #1E40AF; }
+        .avail-cell.heat-4 { background: #60A5FA; color: #1E3A8A; }
+        .avail-cell.heat-5 { background: #3B82F6; color: white; }
+        .avail-best { margin-top: 10px; padding: 10px 14px; background: var(--blue-light); border-radius: 8px; font-size: 13px; color: var(--blue); }
+        .avail-best strong { font-weight: 700; }
+        .avail-note { font-size: 11px; color: var(--gray-400); margin-top: 6px; }
+
+        /* Amenity input */
+        .amenity-input-wrap { display: flex; gap: 8px; }
+        .amenity-input-wrap input { flex: 1; }
+        .amenity-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .amenity-tag {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: var(--blue-light); color: var(--blue);
+            padding: 4px 10px; border-radius: 6px; font-size: 13px;
+        }
+        .amenity-tag .remove { cursor: pointer; font-weight: 700; opacity: 0.6; }
+        .amenity-tag .remove:hover { opacity: 1; }
+
+        /* Copy box */
+        .copy-box {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--gray-50); border: 1px solid var(--gray-200);
+            border-radius: 8px; padding: 10px 14px; margin-top: 8px;
+        }
+        .copy-box code { flex: 1; font-size: 13px; color: var(--gray-700); word-break: break-all; }
+        .copy-box button { padding: 4px 10px; font-size: 12px; }
+
+        /* Page sections */
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: var(--gray-900); color: white;
+            padding: 14px 20px; border-radius: 10px;
+            font-size: 14px; font-weight: 500; z-index: 2000;
+            transform: translateY(100px); opacity: 0; transition: all 0.3s;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.error { background: var(--red); }
+        .toast.success { background: var(--green); }
+
+        /* Empty state */
+        .empty-state { text-align: center; padding: 60px 20px; }
+        .empty-state h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+        .empty-state p { color: var(--gray-500); font-size: 14px; margin-bottom: 24px; }
+
+        /* Status banner */
+        .status-banner {
+            padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;
+            font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px;
+        }
+        .status-banner.pending { background: var(--orange-light); color: #92400E; border: 1px solid #FDE68A; }
+        .status-banner.rejected { background: var(--red-light); color: #991B1B; border: 1px solid #FECACA; }
+
+        /* Suggested times */
+        .suggested-times { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        .suggested-time {
+            padding: 8px 14px; background: var(--green-light); border: 1px solid #BBF7D0;
+            border-radius: 8px; font-size: 13px; color: #166534; font-weight: 500;
+        }
+        .suggested-time .count { font-weight: 700; }
+
+        /* Loading spinner */
+        .loading { display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--gray-400); }
+        .spinner { width: 24px; height: 24px; border: 3px solid var(--gray-200); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <!-- ===== AUTH SCREEN ===== -->
+    <div class="auth-screen" id="auth-screen">
+        <div class="auth-box">
+            <div class="logo-icon"><img src="sort-logo.png" alt="Sort"></div>
+            <h1>Sort for Property Managers</h1>
+            <p class="tagline">Create your community and connect with residents</p>
+            <button class="google-btn" onclick="signInWithGoogle()">
+                <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Sign in with Google
+            </button>
+            <p class="auth-footer">By signing in, you agree to Sort's Terms of Service.<br>Manage your apartment community with ease.</p>
+        </div>
+    </div>
+
+    <!-- ===== MAIN APP ===== -->
+    <div class="app hidden" id="main-app">
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <h1>Sort <span>PM</span></h1>
+                <p>Property Management</p>
+            </div>
+
+            <div class="nav-item active" data-page="dashboard">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                Dashboard
+            </div>
+            <div class="nav-item" data-page="properties">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                My Properties
+            </div>
+            <div class="nav-item" data-page="residents">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                Residents
+            </div>
+            <div class="nav-item" data-page="analytics">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                Analytics
+            </div>
+            <div class="nav-item" data-page="events">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                Events
+            </div>
+            <div class="nav-item" data-page="polls">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                Daily Polls
+            </div>
+            <div class="nav-item" data-page="referrals">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Referral Program
+            </div>
+            <div class="nav-item" data-page="reviews">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                Google Reviews
+            </div>
+            <div class="nav-item" data-page="moderation">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                Moderation
+            </div>
+            <div class="nav-item" data-page="reports">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Reports
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user" id="user-email">—</div>
+                <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
+            </div>
+        </aside>
+
+        <main class="main">
+
+            <!-- ===== DASHBOARD ===== -->
+            <div class="page active" id="page-dashboard">
+                <div class="page-header">
+                    <div>
+                        <h2 id="greeting">Welcome back!</h2>
+                        <p>Overview of your properties and community</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="navigateTo('properties'); openPropertyModal();">+ Add Property</button>
+                </div>
+
+                <div id="pending-banners"></div>
+
+                <div class="stats" id="dash-stats">
+                    <div class="stat-card">
+                        <div class="icon blue"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg></div>
+                        <div class="number" id="stat-properties">0</div>
+                        <div class="label">Properties</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon green"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg></div>
+                        <div class="number" id="stat-residents">0</div>
+                        <div class="label">Total Residents</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon purple"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg></div>
+                        <div class="number" id="stat-new-residents">0</div>
+                        <div class="label">New (30 days)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon orange"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
+                        <div class="number" id="stat-events">0</div>
+                        <div class="label">Upcoming Events</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon teal"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div>
+                        <div class="number" id="stat-avg-attendance">—</div>
+                        <div class="label">Avg Attendance</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon red"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg></div>
+                        <div class="number" id="stat-engagement">—</div>
+                        <div class="label">Engagement Rate</div>
+                    </div>
+                </div>
+
+                <!-- Dashboard quick charts -->
+                <div class="chart-grid">
+                    <div class="chart-card">
+                        <h3>Resident Growth</h3>
+                        <p class="chart-subtitle">New residents per week (12 weeks)</p>
+                        <canvas id="dash-growth-chart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Resident Interests</h3>
+                        <p class="chart-subtitle">Top interests across your properties</p>
+                        <canvas id="dash-interests-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3>Recent Residents</h3></div>
+                    <table>
+                        <thead><tr><th>Name</th><th>Property</th><th>Unit</th><th>Move-In</th><th>Joined</th></tr></thead>
+                        <tbody id="dash-residents"><tr><td colspan="5" class="empty-row">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ===== MY PROPERTIES ===== -->
+            <div class="page" id="page-properties">
+                <div class="page-header">
+                    <div>
+                        <h2>My Properties</h2>
+                        <p>Manage your apartment complexes</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openPropertyModal()">+ Add Property</button>
+                </div>
+                <div class="card">
+                    <table>
+                        <thead><tr><th>Property</th><th>Address</th><th>Amenities</th><th>Residents</th><th>Status</th><th>Join Code</th><th>Actions</th></tr></thead>
+                        <tbody id="properties-table"><tr><td colspan="7" class="empty-row">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ===== RESIDENTS ===== -->
+            <div class="page" id="page-residents">
+                <div class="page-header">
+                    <div>
+                        <h2>Residents</h2>
+                        <p>View residents across all your properties</p>
+                    </div>
+                    <input type="text" style="padding:10px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px;width:280px" placeholder="Search residents..." id="search-residents" oninput="filterResidents()">
+                </div>
+                <div class="card">
+                    <table>
+                        <thead><tr><th>Name</th><th>Property</th><th>Unit</th><th>Interests</th><th>Move-In</th><th>Joined</th></tr></thead>
+                        <tbody id="residents-table"><tr><td colspan="6" class="empty-row">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ===== ANALYTICS ===== -->
+            <div class="page" id="page-analytics">
+                <div class="page-header">
+                    <div>
+                        <h2>Analytics</h2>
+                        <p>Deep insights into your community engagement</p>
+                    </div>
+                    <div class="date-filter" id="analytics-date-filter">
+                        <button class="active" data-range="30" onclick="setAnalyticsRange(30)">30 Days</button>
+                        <button data-range="90" onclick="setAnalyticsRange(90)">90 Days</button>
+                        <button data-range="0" onclick="setAnalyticsRange(0)">All Time</button>
+                    </div>
+                </div>
+
+                <!-- Community Health Score -->
+                <div class="chart-card full-width" style="margin-bottom:24px">
+                    <h3>Community Health Score</h3>
+                    <p class="chart-subtitle">Composite score based on engagement, events, chat activity, and poll participation</p>
+                    <div class="health-score">
+                        <div class="health-ring">
+                            <canvas id="health-chart"></canvas>
+                            <div class="score-text">
+                                <div class="score-number" id="health-number">—</div>
+                                <div class="score-label" id="health-label">Loading</div>
+                            </div>
+                        </div>
+                        <div class="health-factors" id="health-factors"></div>
+                    </div>
+                </div>
+
+                <div class="chart-grid">
+                    <div class="chart-card">
+                        <h3>Resident Growth</h3>
+                        <p class="chart-subtitle">Cumulative residents over time</p>
+                        <canvas id="analytics-growth-chart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Event Attendance</h3>
+                        <p class="chart-subtitle">Filled vs. available capacity</p>
+                        <canvas id="analytics-attendance-chart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Interest Breakdown</h3>
+                        <p class="chart-subtitle">What your residents are into</p>
+                        <canvas id="analytics-interests-chart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Event Categories</h3>
+                        <p class="chart-subtitle">Most popular event types by attendance</p>
+                        <canvas id="analytics-categories-chart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Move-In Timeline</h3>
+                        <p class="chart-subtitle">When residents moved into your properties</p>
+                        <canvas id="analytics-movein-chart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Chat Engagement</h3>
+                        <p class="chart-subtitle">Building chat messages per week</p>
+                        <canvas id="analytics-chat-chart"></canvas>
+                    </div>
+                    <!-- Full-width availability heatmap -->
+                    <div class="chart-card full-width">
+                        <h3>Resident Availability</h3>
+                        <p class="chart-subtitle">When your residents are free — use this to plan events</p>
+                        <div class="avail-grid" id="analytics-avail-grid">
+                            <div></div>
+                            <div class="avail-header">5a–9a</div>
+                            <div class="avail-header">9a–2p</div>
+                            <div class="avail-header">2p–5p</div>
+                            <div class="avail-header">5p–10p</div>
+                        </div>
+                        <div class="avail-best" id="analytics-avail-best" style="display:none"></div>
+                        <p class="avail-note">Based on availability submitted by residents in the app</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== EVENTS ===== -->
+            <div class="page" id="page-events">
+                <div class="page-header">
+                    <div>
+                        <h2>Events</h2>
+                        <p>Create events for your property residents</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openEventModal()">+ Create Event</button>
+                </div>
+                <div class="card">
+                    <table>
+                        <thead><tr><th>Event</th><th>Date & Time</th><th>Property</th><th>Price</th><th>RSVPs / Cap</th><th>Actions</th></tr></thead>
+                        <tbody id="events-table"><tr><td colspan="6" class="empty-row">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- ===== DAILY POLLS ===== -->
+            <div class="page" id="page-polls">
+                <div class="page-header">
+                    <div>
+                        <h2>Daily Polls</h2>
+                        <p>Create Question of the Day polls for your residents</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openPollModal()">+ Create Poll</button>
+                </div>
+                <div class="card">
+                    <table>
+                        <thead><tr><th>Question</th><th>Property</th><th>Options</th><th>Votes</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="polls-table"><tr><td colspan="7" class="empty-row">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ===== REFERRAL PROGRAM ===== -->
+            <div class="page" id="page-referrals">
+                <div class="page-header">
+                    <div>
+                        <h2>Referral Program</h2>
+                        <p>Set cash rewards for residents who refer new tenants</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openReferralModal()">Set Up Program</button>
+                </div>
+                <div id="referral-programs-container"></div>
+                <div class="card" style="margin-top:24px">
+                    <div class="card-header"><h3>Referral Activity</h3></div>
+                    <table>
+                        <thead><tr><th>Referrer</th><th>Referred</th><th>Property</th><th>Status</th><th>Referrer Paid</th><th>Referee Paid</th><th>Date</th><th>Actions</th></tr></thead>
+                        <tbody id="referrals-table"><tr><td colspan="8" class="empty-row">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ===== GOOGLE REVIEWS ===== -->
+            <div class="page" id="page-reviews">
+                <div class="page-header">
+                    <div>
+                        <h2>Google Reviews</h2>
+                        <p>Encourage residents to leave Google reviews for your properties</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openReviewSetupModal()">Set Up Reviews</button>
+                </div>
+                <div id="review-config-container"></div>
+                <div class="card" style="margin-top:24px">
+                    <div class="card-header"><h3>How It Works</h3></div>
+                    <div class="card-body">
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;text-align:center">
+                            <div>
+                                <div style="font-size:32px;margin-bottom:8px">📧</div>
+                                <h4 style="font-size:14px;margin-bottom:4px">1. Set Up</h4>
+                                <p style="font-size:13px;color:var(--gray-500)">Add your Google Review link and customize the message</p>
+                            </div>
+                            <div>
+                                <div style="font-size:32px;margin-bottom:8px">📱</div>
+                                <h4 style="font-size:14px;margin-bottom:4px">2. Send Prompts</h4>
+                                <p style="font-size:13px;color:var(--gray-500)">Residents receive a friendly nudge to leave a review</p>
+                            </div>
+                            <div>
+                                <div style="font-size:32px;margin-bottom:8px">⭐</div>
+                                <h4 style="font-size:14px;margin-bottom:4px">3. Grow Reputation</h4>
+                                <p style="font-size:13px;color:var(--gray-500)">Watch your Google ratings climb with authentic reviews</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== CONTENT MODERATION ===== -->
+            <div class="page" id="page-moderation">
+                <div class="page-header">
+                    <div>
+                        <h2>Content Moderation</h2>
+                        <p>Review flagged chat messages across your properties</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadModeration()">Refresh</button>
+                </div>
+                <div class="stats" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
+                    <div class="stat-card">
+                        <div class="icon orange"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></div>
+                        <div class="number" id="mod-pending">0</div>
+                        <div class="label">Pending Review</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon green"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+                        <div class="number" id="mod-resolved">0</div>
+                        <div class="label">Resolved</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon red"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg></div>
+                        <div class="number" id="mod-removed">0</div>
+                        <div class="label">Removed</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <table>
+                        <thead><tr><th>Message</th><th>Sender</th><th>Chat Room</th><th>Reason</th><th>Flagged</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="moderation-table"><tr><td colspan="7" class="empty-row">No flagged messages</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ===== REPORTS ===== -->
+            <div class="page" id="page-reports">
+                <div class="page-header">
+                    <div>
+                        <h2>Monthly Reports</h2>
+                        <p>Generate engagement summaries for your properties</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="generateReport()">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Download PDF Report
+                    </button>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Report Preview</h3></div>
+                    <div class="card-body" id="report-preview">
+                        <div class="loading"><div class="spinner"></div> Loading report data...</div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ===== PROPERTY MODAL ===== -->
+    <div class="modal-overlay" id="property-modal">
+        <div class="modal">
+            <h2 id="property-modal-title">Add Property</h2>
+            <p class="subtitle">Enter your apartment complex details</p>
+            <form id="property-form" onsubmit="saveProperty(event)">
+                <input type="hidden" id="prop-id">
+                <div class="form-group">
+                    <label>Property Name *</label>
+                    <input type="text" id="prop-name" required placeholder="e.g. The Heights Apartments">
+                </div>
+                <div class="form-group">
+                    <label>Address</label>
+                    <input type="text" id="prop-address" placeholder="123 Main Street">
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>City</label><input type="text" id="prop-city" placeholder="Dallas"></div>
+                    <div class="form-group"><label>State</label><input type="text" id="prop-state" placeholder="TX" maxlength="2"></div>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="prop-description" placeholder="Describe your property..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Latitude</label><input type="number" step="any" id="prop-lat" placeholder="32.7767"></div>
+                    <div class="form-group"><label>Longitude</label><input type="number" step="any" id="prop-lng" placeholder="-96.7970"></div>
+                </div>
+                <div class="form-group">
+                    <label>Amenities</label>
+                    <div class="amenity-input-wrap">
+                        <input type="text" id="prop-amenity-input" placeholder="e.g. Pool, Gym, Dog Park...">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="addAmenity()">Add</button>
+                    </div>
+                    <div class="amenity-tags" id="prop-amenity-tags"></div>
+                    <p class="hint">Press Enter or click Add</p>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('property-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="prop-submit-btn">Add Property</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== EVENT MODAL ===== -->
+    <div class="modal-overlay" id="event-modal">
+        <div class="modal">
+            <h2 id="event-modal-title">Create Event</h2>
+            <p class="subtitle">Schedule a community event at your property</p>
+            <form id="event-form" onsubmit="saveEvent(event)">
+                <input type="hidden" id="evt-id">
+                <div class="form-group">
+                    <label>Event Title *</label>
+                    <input type="text" id="evt-title" required placeholder="e.g. Pool Party, Movie Night">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="evt-description" placeholder="What's this event about?"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Date *</label><input type="date" id="evt-date" required></div>
+                    <div class="form-group"><label>Time *</label><input type="text" id="evt-time" required placeholder="7:00 PM - 10:00 PM"></div>
+                </div>
+                <div class="form-group">
+                    <label>Property *</label>
+                    <select id="evt-property" required><option value="">Select property</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Location *</label>
+                    <input type="text" id="evt-location" required placeholder="e.g. Pool Area, Community Room">
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Price ($)</label><input type="number" step="0.01" min="0" id="evt-price" value="0" placeholder="0 = Free"></div>
+                    <div class="form-group"><label>Capacity</label><input type="number" min="1" id="evt-capacity" value="50"></div>
+                </div>
+
+                <!-- Availability Insights -->
+                <div class="avail-section">
+                    <div class="avail-toggle" onclick="toggleEventAvailability()">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span class="avail-toggle-text">Resident Availability</span>
+                        <span class="avail-toggle-sub" id="evt-avail-count">Loading...</span>
+                    </div>
+                    <div class="avail-content" id="evt-avail-content">
+                        <div class="avail-grid" id="evt-avail-grid">
+                            <div></div>
+                            <div class="avail-header">5a–9a</div>
+                            <div class="avail-header">9a–2p</div>
+                            <div class="avail-header">2p–5p</div>
+                            <div class="avail-header">5p–10p</div>
+                        </div>
+                        <div class="avail-best" id="evt-avail-best" style="display:none"></div>
+                        <div id="evt-suggested-times"></div>
+                        <p class="avail-note">Based on availability submitted by residents in the app. Schedule events when more residents are free!</p>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('event-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="evt-submit-btn">Create Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== POLL MODAL ===== -->
+    <div class="modal-overlay" id="poll-modal">
+        <div class="modal">
+            <h2>Create Daily Poll</h2>
+            <p class="subtitle">Ask your residents a Question of the Day</p>
+            <form id="poll-form" onsubmit="savePoll(event)">
+                <div class="form-group">
+                    <label>Question *</label>
+                    <input type="text" id="poll-question" required placeholder="e.g. What amenity should we add next?">
+                </div>
+                <div class="form-group">
+                    <label>Property *</label>
+                    <select id="poll-property" required><option value="">Select property</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Options</label>
+                    <div id="poll-options-list"></div>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="addPollOption()" style="margin-top:8px">+ Add Option</button>
+                    <p class="hint">Add 2-6 answer choices</p>
+                </div>
+                <div class="form-group">
+                    <label>Active Date</label>
+                    <input type="date" id="poll-date" value="">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('poll-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Poll</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== REFERRAL MODAL ===== -->
+    <div class="modal-overlay" id="referral-modal">
+        <div class="modal">
+            <h2 id="referral-modal-title">Set Up Referral Program</h2>
+            <p class="subtitle">Reward residents who bring in new tenants</p>
+            <form id="referral-form" onsubmit="saveReferralProgram(event)">
+                <input type="hidden" id="ref-prog-id">
+                <div class="form-group">
+                    <label>Property *</label>
+                    <select id="ref-property" required><option value="">Select property</option></select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Referrer Reward ($) *</label>
+                        <input type="number" step="0.01" min="0" id="ref-referrer-reward" required placeholder="e.g. 200">
+                        <p class="hint">Cash reward for the resident who refers</p>
+                    </div>
+                    <div class="form-group">
+                        <label>New Tenant Reward ($) *</label>
+                        <input type="number" step="0.01" min="0" id="ref-referee-reward" required placeholder="e.g. 100">
+                        <p class="hint">Cash reward for the new tenant</p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Program Description</label>
+                    <textarea id="ref-description" placeholder="e.g. Refer a friend and both of you get cash! The referrer gets $200 and the new tenant gets $100 off first month's rent."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('referral-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="ref-submit-btn">Save Program</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== REVIEW SETUP MODAL ===== -->
+    <div class="modal-overlay" id="review-setup-modal">
+        <div class="modal">
+            <h2>Set Up Google Reviews</h2>
+            <p class="subtitle">Configure review prompts for your property</p>
+            <form id="review-form" onsubmit="saveReviewConfig(event)">
+                <input type="hidden" id="rev-id">
+                <div class="form-group">
+                    <label>Property *</label>
+                    <select id="rev-property" required><option value="">Select property</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Google Review URL *</label>
+                    <input type="url" id="rev-url" required placeholder="https://g.page/r/YOUR_PLACE_ID/review">
+                    <p class="hint">Go to Google Maps → your property → Share → Copy link, or use: https://search.google.com/local/writereview?placeid=YOUR_PLACE_ID</p>
+                </div>
+                <div class="form-group">
+                    <label>Message Template</label>
+                    <textarea id="rev-message" placeholder="Hi {name}! We hope you're loving life at {property}. Would you mind leaving us a quick Google review? It really helps us attract great neighbors like you!"></textarea>
+                    <p class="hint">Use {name} for resident name and {property} for property name</p>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('review-setup-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Configuration</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // =============================================
+        // CONFIG
+        // =============================================
+        const SUPABASE_URL = 'https://tjnlzdrxhivnbgssvqqy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqbmx6ZHJ4aGl2bmJnc3N2cXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyNjY5NjAsImV4cCI6MjA4NTg0Mjk2MH0.x4Lm3OhGnN5syi-0TuVf1HYPSemD7tgtBqxa3VnLu-w';
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const CHART_COLORS = ['#2196F3', '#E53935', '#F59E0B', '#4CAF50', '#8B5CF6', '#14B8A6', '#EC4899', '#F97316', '#06B6D4', '#84CC16'];
+
+        // =============================================
+        // STATE
+        // =============================================
+        let currentUser = null;
+        let myProperties = [];
+        let allResidents = [];
+        let propertyAmenities = [];
+        let analyticsRange = 30;
+        let chartInstances = {};
+        let availabilityCounts = null;
+
+        // =============================================
+        // AUTH
+        // =============================================
+        async function signInWithGoogle() {
+            const { error } = await db.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: window.location.href.split('#')[0].split('?')[0] }
+            });
+            if (error) showToast('Sign-in error: ' + error.message, 'error');
+        }
+
+        async function signOut() {
+            await db.auth.signOut();
+            currentUser = null;
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('main-app').classList.add('hidden');
+        }
+
+        db.auth.onAuthStateChange(async (event, session) => {
+            if (session?.user) {
+                currentUser = session.user;
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                document.getElementById('user-email').textContent = currentUser.email;
+                const name = currentUser.user_metadata?.full_name?.split(' ')[0] || '';
+                document.getElementById('greeting').textContent = name ? `Welcome back, ${name}!` : 'Welcome back!';
+                loadAll();
+            } else {
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('main-app').classList.add('hidden');
+            }
+        });
+
+        // =============================================
+        // NAVIGATION
+        // =============================================
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => navigateTo(item.dataset.page));
+        });
+
+        function navigateTo(page) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
+            document.getElementById('page-' + page)?.classList.add('active');
+            if (page === 'analytics') loadAnalytics();
+        }
+
+        // =============================================
+        // TOAST & MODALS
+        // =============================================
+        function showToast(msg, type = '') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show ' + type;
+            setTimeout(() => t.className = 'toast', 3000);
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        document.querySelectorAll('.modal-overlay').forEach(m => {
+            m.addEventListener('click', e => { if (e.target === m) closeModal(m.id); });
+        });
+
+        // =============================================
+        // AMENITY HELPERS
+        // =============================================
+        document.getElementById('prop-amenity-input').addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); addAmenity(); }
+        });
+
+        function addAmenity() {
+            const input = document.getElementById('prop-amenity-input');
+            const val = input.value.trim();
+            if (val && !propertyAmenities.includes(val)) {
+                propertyAmenities.push(val);
+                renderAmenities();
+            }
+            input.value = '';
+            input.focus();
+        }
+
+        function removeAmenity(i) {
+            propertyAmenities.splice(i, 1);
+            renderAmenities();
+        }
+
+        function renderAmenities() {
+            document.getElementById('prop-amenity-tags').innerHTML = propertyAmenities.map((a, i) =>
+                `<span class="amenity-tag">${a} <span class="remove" onclick="removeAmenity(${i})">×</span></span>`
+            ).join('');
+        }
+
+        // =============================================
+        // JOIN CODE
+        // =============================================
+        function generateJoinCode() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        function copyJoinCode(code) {
+            navigator.clipboard.writeText(code).then(() => showToast('Join code copied!', 'success'));
+        }
+
+        // =============================================
+        // PROPERTY CRUD
+        // =============================================
+        function openPropertyModal(property = null) {
+            propertyAmenities = property?.amenities || [];
+            document.getElementById('property-modal-title').textContent = property ? 'Edit Property' : 'Add Property';
+            document.getElementById('prop-submit-btn').textContent = property ? 'Save Changes' : 'Add Property';
+            document.getElementById('prop-id').value = property?.id || '';
+            document.getElementById('prop-name').value = property?.name || '';
+            document.getElementById('prop-address').value = property?.address || '';
+            document.getElementById('prop-city').value = property?.city || '';
+            document.getElementById('prop-state').value = property?.state || '';
+            document.getElementById('prop-description').value = property?.description || '';
+            document.getElementById('prop-lat').value = property?.latitude || '';
+            document.getElementById('prop-lng').value = property?.longitude || '';
+            renderAmenities();
+            document.getElementById('property-modal').classList.add('active');
+        }
+
+        async function saveProperty(e) {
+            e.preventDefault();
+            const id = document.getElementById('prop-id').value;
+            const data = {
+                name: document.getElementById('prop-name').value,
+                address: document.getElementById('prop-address').value || null,
+                city: document.getElementById('prop-city').value || null,
+                state: document.getElementById('prop-state').value || null,
+                description: document.getElementById('prop-description').value || null,
+                latitude: parseFloat(document.getElementById('prop-lat').value) || null,
+                longitude: parseFloat(document.getElementById('prop-lng').value) || null,
+                amenities: propertyAmenities,
+                updated_at: new Date().toISOString(),
+            };
+
+            try {
+                if (id) {
+                    const { error } = await db.from('properties').update(data).eq('id', id);
+                    if (error) throw error;
+                    showToast('Property updated!', 'success');
+                } else {
+                    data.manager_email = currentUser.email;
+                    data.join_code = generateJoinCode();
+                    data.status = 'pending';
+                    const { error } = await db.from('properties').insert(data);
+                    if (error) throw error;
+                    showToast('Property submitted for approval!', 'success');
+                }
+                closeModal('property-modal');
+                document.getElementById('property-form').reset();
+                loadAll();
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        }
+
+        async function deleteProperty(id, name) {
+            if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+            try {
+                const { error } = await db.from('properties').delete().eq('id', id);
+                if (error) throw error;
+                showToast('Property deleted', 'success');
+                loadAll();
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        }
+
+        // =============================================
+        // EVENT CRUD
+        // =============================================
+        function openEventModal(evt = null) {
+            document.getElementById('event-modal-title').textContent = evt ? 'Edit Event' : 'Create Event';
+            document.getElementById('evt-submit-btn').textContent = evt ? 'Save Changes' : 'Create Event';
+            document.getElementById('evt-id').value = evt?.id || '';
+            document.getElementById('evt-title').value = evt?.title || '';
+            document.getElementById('evt-description').value = evt?.description || '';
+            document.getElementById('evt-date').value = evt?.date || '';
+            document.getElementById('evt-time').value = evt?.time || '';
+            document.getElementById('evt-location').value = evt?.location || '';
+            document.getElementById('evt-price').value = evt?.price ?? 0;
+            document.getElementById('evt-capacity').value = evt?.capacity ?? 50;
+
+            const sel = document.getElementById('evt-property');
+            const approvedProps = myProperties.filter(p => p.status === 'approved');
+            sel.innerHTML = '<option value="">Select property</option>' +
+                approvedProps.map(p => `<option value="${p.name}" ${evt?.building_name === p.name ? 'selected' : ''}>${p.name}</option>`).join('');
+
+            document.getElementById('event-modal').classList.add('active');
+            loadEventAvailability();
+        }
+
+        async function saveEvent(e) {
+            e.preventDefault();
+            const id = document.getElementById('evt-id').value;
+            const data = {
+                title: document.getElementById('evt-title').value,
+                description: document.getElementById('evt-description').value || null,
+                date: document.getElementById('evt-date').value,
+                time: document.getElementById('evt-time').value,
+                location: document.getElementById('evt-location').value,
+                price: parseFloat(document.getElementById('evt-price').value) || 0,
+                capacity: parseInt(document.getElementById('evt-capacity').value) || 50,
+                building_name: document.getElementById('evt-property').value || null,
+                updated_at: new Date().toISOString(),
+            };
+
+            try {
+                if (id) {
+                    const { error } = await db.from('events').update(data).eq('id', id);
+                    if (error) throw error;
+                    showToast('Event updated!', 'success');
+                } else {
+                    const { error } = await db.from('events').insert(data);
+                    if (error) throw error;
+                    showToast('Event created!', 'success');
+                }
+                closeModal('event-modal');
+                document.getElementById('event-form').reset();
+                loadEvents();
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        }
+
+        async function deleteEvent(id, title) {
+            if (!confirm(`Delete "${title}"?`)) return;
+            try {
+                const { error } = await db.from('events').delete().eq('id', id);
+                if (error) throw error;
+                showToast('Event deleted', 'success');
+                loadEvents();
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        }
+
+        // =============================================
+        // DATA LOADING
+        // =============================================
+        async function loadAll() {
+            await loadProperties();
+            await Promise.all([loadResidents(), loadEvents()]);
+            loadDashboardStats();
+            loadDashboardCharts();
+            // Load new feature sections
+            loadPolls();
+            loadReferrals();
+            loadReviews();
+            loadModeration();
+            loadReportPreview();
+        }
+
+        async function loadProperties() {
+            const { data, error } = await db.from('properties').select('*')
+                .eq('manager_email', currentUser.email)
+                .order('created_at', { ascending: false });
+            myProperties = data || [];
+
+            // Show pending banners on dashboard
+            const pendingProps = myProperties.filter(p => p.status === 'pending');
+            const bannersEl = document.getElementById('pending-banners');
+            if (pendingProps.length) {
+                bannersEl.innerHTML = pendingProps.map(p =>
+                    `<div class="status-banner pending">⏳ "${p.name}" is pending admin approval. Residents can join once approved.</div>`
+                ).join('');
+            } else {
+                bannersEl.innerHTML = '';
+            }
+
+            const tbody = document.getElementById('properties-table');
+            if (!myProperties.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-row">No properties yet. Click "+ Add Property" to get started.</td></tr>';
+                return;
+            }
+
+            // Count residents per property
+            const { data: users } = await db.from('users').select('building_name');
+            const counts = {};
+            users?.forEach(u => { if (u.building_name) counts[u.building_name] = (counts[u.building_name] || 0) + 1; });
+
+            tbody.innerHTML = myProperties.map(p => {
+                const statusTag = p.status === 'approved' ? '<span class="tag tag-green">Approved</span>'
+                    : p.status === 'rejected' ? '<span class="tag tag-red">Rejected</span>'
+                    : '<span class="tag tag-orange">Pending</span>';
+                return `
+                <tr>
+                    <td>
+                        <strong>${p.name}</strong>
+                        ${p.description ? `<br><span style="font-size:12px;color:var(--gray-500)">${p.description.substring(0, 50)}${p.description.length > 50 ? '...' : ''}</span>` : ''}
+                    </td>
+                    <td>${p.address || '-'}<br><span style="font-size:12px;color:var(--gray-500)">${[p.city, p.state].filter(Boolean).join(', ')}</span></td>
+                    <td>
+                        <div class="amenity-chips">
+                            ${(p.amenities || []).slice(0, 3).map(a => `<span class="amenity-chip">${a}</span>`).join('')}
+                            ${(p.amenities || []).length > 3 ? `<span class="amenity-chip">+${p.amenities.length - 3}</span>` : ''}
+                        </div>
+                    </td>
+                    <td><span class="tag tag-blue">${counts[p.name] || 0}</span></td>
+                    <td>${statusTag}</td>
+                    <td>
+                        <div class="copy-box" style="margin:0">
+                            <code>${p.join_code || 'N/A'}</code>
+                            ${p.join_code ? `<button type="button" class="btn btn-secondary btn-sm" onclick="copyJoinCode('${p.join_code}')">Copy</button>` : ''}
+                        </div>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-sm" onclick='openPropertyModal(${JSON.stringify(p).replace(/'/g, "\\'")})'>Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteProperty('${p.id}', '${p.name.replace(/'/g, "\\'")}')">Delete</button>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        async function loadResidents() {
+            const propNames = myProperties.filter(p => p.status === 'approved').map(p => p.name);
+            if (!propNames.length) {
+                document.getElementById('residents-table').innerHTML = '<tr><td colspan="6" class="empty-row">Add and get a property approved to see residents</td></tr>';
+                document.getElementById('dash-residents').innerHTML = '<tr><td colspan="5" class="empty-row">No residents yet</td></tr>';
+                allResidents = [];
+                return;
+            }
+
+            const { data } = await db.from('users').select('*').in('building_name', propNames).order('created_at', { ascending: false });
+            allResidents = data || [];
+            renderResidents(allResidents);
+
+            // Dashboard recent
+            const recent = allResidents.slice(0, 5);
+            const dashTbody = document.getElementById('dash-residents');
+            if (!recent.length) {
+                dashTbody.innerHTML = '<tr><td colspan="5" class="empty-row">No residents yet</td></tr>';
+                return;
+            }
+            dashTbody.innerHTML = recent.map(r => `
+                <tr>
+                    <td><strong>${r.name || 'Unknown'}</strong></td>
+                    <td>${r.building_name || '-'}</td>
+                    <td>${r.unit_number || '-'}</td>
+                    <td>${r.move_in_date ? new Date(r.move_in_date).toLocaleDateString() : '-'}</td>
+                    <td>${new Date(r.created_at).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderResidents(list) {
+            const tbody = document.getElementById('residents-table');
+            if (!list?.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-row">No residents found</td></tr>';
+                return;
+            }
+            tbody.innerHTML = list.map(r => `
+                <tr>
+                    <td><strong>${r.name || 'Unknown'}</strong></td>
+                    <td>${r.building_name || '-'}</td>
+                    <td>${r.unit_number || '-'}</td>
+                    <td>
+                        <div class="amenity-chips">
+                            ${(r.interests || []).slice(0, 3).map(i => `<span class="amenity-chip">${i}</span>`).join('')}
+                            ${(r.interests || []).length > 3 ? `<span class="amenity-chip">+${r.interests.length - 3}</span>` : ''}
+                        </div>
+                    </td>
+                    <td>${r.move_in_date ? new Date(r.move_in_date).toLocaleDateString() : '-'}</td>
+                    <td>${new Date(r.created_at).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        function filterResidents() {
+            const q = document.getElementById('search-residents').value.toLowerCase();
+            const filtered = allResidents.filter(r =>
+                r.name?.toLowerCase().includes(q) ||
+                r.building_name?.toLowerCase().includes(q) ||
+                r.unit_number?.toLowerCase().includes(q) ||
+                (r.interests || []).some(i => i.toLowerCase().includes(q))
+            );
+            renderResidents(filtered);
+        }
+
+        async function loadEvents() {
+            const propNames = myProperties.filter(p => p.status === 'approved').map(p => p.name);
+            const { data } = await db.from('events').select('*').order('date', { ascending: true });
+            const { data: att } = await db.from('event_attendees').select('event_id');
+            const counts = {};
+            att?.forEach(a => { counts[a.event_id] = (counts[a.event_id] || 0) + 1; });
+
+            // Filter to events at manager's properties
+            const myEvents = (data || []).filter(e =>
+                propNames.some(pn => e.building_name === pn || (e.location && e.location.includes(pn)))
+            );
+
+            const tbody = document.getElementById('events-table');
+            if (!myEvents.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-row">No events yet. Click "+ Create Event".</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = myEvents.map(e => {
+                const isPast = new Date(e.date) < new Date().setHours(0,0,0,0);
+                return `
+                <tr style="${isPast ? 'opacity:0.5' : ''}">
+                    <td><strong>${e.title}</strong></td>
+                    <td>${new Date(e.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}<br><span style="font-size:12px;color:var(--gray-500)">${e.time}</span></td>
+                    <td>${e.building_name || e.location || '-'}</td>
+                    <td>${e.price > 0 ? '$' + parseFloat(e.price).toFixed(0) : '<span class="tag tag-green">Free</span>'}</td>
+                    <td><span class="tag tag-orange">${counts[e.id] || 0} / ${e.capacity}</span></td>
+                    <td>
+                        <button class="btn btn-secondary btn-sm" onclick='openEventModal(${JSON.stringify(e).replace(/'/g, "\\'")})'>Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteEvent('${e.id}', '${e.title.replace(/'/g, "\\'")}')">Delete</button>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        // =============================================
+        // DASHBOARD STATS
+        // =============================================
+        function loadDashboardStats() {
+            const approved = myProperties.filter(p => p.status === 'approved');
+            document.getElementById('stat-properties').textContent = approved.length;
+            document.getElementById('stat-residents').textContent = allResidents.length;
+
+            // New in 30 days
+            const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const newResidents = allResidents.filter(r => new Date(r.created_at) >= thirtyDaysAgo);
+            document.getElementById('stat-new-residents').textContent = newResidents.length;
+
+            // Upcoming events
+            const today = new Date().toISOString().split('T')[0];
+            const evtRows = document.getElementById('events-table').querySelectorAll('tr:not(.empty-row)');
+            let upcomingCount = 0;
+            evtRows?.forEach(row => { if (row.style.opacity !== '0.5') upcomingCount++; });
+            document.getElementById('stat-events').textContent = upcomingCount;
+
+            // Engagement rate (% of residents who have interests set = somewhat active)
+            const engaged = allResidents.filter(r => r.interests && r.interests.length > 0);
+            const engRate = allResidents.length ? Math.round((engaged.length / allResidents.length) * 100) : 0;
+            document.getElementById('stat-engagement').textContent = engRate + '%';
+
+            // Avg attendance placeholder
+            document.getElementById('stat-avg-attendance').textContent = '—';
+        }
+
+        // =============================================
+        // DASHBOARD CHARTS
+        // =============================================
+        function loadDashboardCharts() {
+            buildGrowthChart('dash-growth-chart', allResidents, 12);
+            buildInterestsChart('dash-interests-chart', allResidents);
+        }
+
+        function buildGrowthChart(canvasId, residents, weeks) {
+            if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            const now = new Date();
+            const labels = [];
+            const data = [];
+
+            for (let i = weeks - 1; i >= 0; i--) {
+                const weekStart = new Date(now);
+                weekStart.setDate(weekStart.getDate() - (i * 7));
+                weekStart.setHours(0, 0, 0, 0);
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekEnd.getDate() + 7);
+
+                labels.push(weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                const count = residents.filter(r => {
+                    const d = new Date(r.created_at);
+                    return d >= weekStart && d < weekEnd;
+                }).length;
+                data.push(count);
+            }
+
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'New Residents',
+                        data,
+                        borderColor: '#2196F3',
+                        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#2196F3',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function buildInterestsChart(canvasId, residents) {
+            if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            const interestCounts = {};
+            residents.forEach(r => {
+                (r.interests || []).forEach(i => {
+                    interestCounts[i] = (interestCounts[i] || 0) + 1;
+                });
+            });
+
+            const sorted = Object.entries(interestCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+            if (!sorted.length) {
+                ctx.parentElement.querySelector('.chart-subtitle').textContent = 'No interest data yet';
+                return;
+            }
+
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: sorted.map(s => s[0]),
+                    datasets: [{
+                        data: sorted.map(s => s[1]),
+                        backgroundColor: CHART_COLORS.slice(0, sorted.length),
+                        borderWidth: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 12, padding: 8, font: { size: 12 } } }
+                    }
+                }
+            });
+        }
+
+        // =============================================
+        // ANALYTICS PAGE
+        // =============================================
+        let analyticsDateRange = 30;
+
+        function setAnalyticsRange(days) {
+            analyticsDateRange = days;
+            document.querySelectorAll('#analytics-date-filter button').forEach(b => b.classList.remove('active'));
+            document.querySelector(`#analytics-date-filter button[data-range="${days}"]`)?.classList.add('active');
+            loadAnalytics();
+        }
+
+        async function loadAnalytics() {
+            await loadHealthScore();
+            loadAnalyticsGrowthChart();
+            await loadAttendanceChart();
+            loadAnalyticsInterestsChart();
+            await loadCategoriesChart();
+            loadMoveInChart();
+            await loadChatChart();
+            await loadAnalyticsAvailability();
+        }
+
+        // --- Health Score ---
+        async function loadHealthScore() {
+            const total = allResidents.length || 1;
+            const engaged = allResidents.filter(r => r.interests?.length > 0).length;
+            const engagementPct = Math.round((engaged / total) * 100);
+
+            // Event attendance factor
+            const propNames = myProperties.filter(p => p.status === 'approved').map(p => p.name);
+            const { data: events } = await db.from('events').select('id, capacity, building_name, location');
+            const myEvts = (events || []).filter(e => propNames.some(pn => e.building_name === pn || (e.location && e.location.includes(pn))));
+            const { data: att } = await db.from('event_attendees').select('event_id');
+            let totalCap = 0, totalAtt = 0;
+            myEvts.forEach(e => {
+                totalCap += e.capacity || 50;
+                totalAtt += (att || []).filter(a => a.event_id === e.id).length;
+            });
+            const attendancePct = totalCap ? Math.round((totalAtt / totalCap) * 100) : 0;
+
+            // Chat factor
+            let chatPct = 0;
+            try {
+                const { data: rooms } = await db.from('chat_rooms').select('id').eq('type', 'building').in('building_name', propNames);
+                if (rooms?.length) {
+                    const roomIds = rooms.map(r => r.id);
+                    const { count } = await db.from('chat_messages').select('id', { count: 'exact', head: true }).in('chat_room_id', roomIds);
+                    chatPct = Math.min(100, Math.round(((count || 0) / Math.max(total, 1)) * 10));
+                }
+            } catch (e) { console.warn('Chat data unavailable'); }
+
+            // Poll factor
+            let pollPct = 0;
+            try {
+                const { data: polls } = await db.from('daily_polls').select('id').in('building_name', propNames);
+                if (polls?.length) {
+                    const pollIds = polls.map(p => p.id);
+                    const { data: votes } = await db.from('poll_votes').select('user_id').in('poll_id', pollIds);
+                    const uniqueVoters = new Set((votes || []).map(v => v.user_id)).size;
+                    pollPct = Math.round((uniqueVoters / total) * 100);
+                }
+            } catch (e) { console.warn('Poll data unavailable'); }
+
+            const score = Math.round(engagementPct * 0.3 + attendancePct * 0.3 + Math.min(chatPct, 100) * 0.2 + Math.min(pollPct, 100) * 0.2);
+
+            // Render health ring
+            if (chartInstances['health-chart']) chartInstances['health-chart'].destroy();
+            const ctx = document.getElementById('health-chart');
+            const scoreColor = score >= 70 ? '#4CAF50' : score >= 40 ? '#F59E0B' : '#EF4444';
+            chartInstances['health-chart'] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [score, 100 - score],
+                        backgroundColor: [scoreColor, '#F1F5F9'],
+                        borderWidth: 0,
+                    }]
+                },
+                options: { responsive: false, cutout: '78%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+            });
+            document.getElementById('health-number').textContent = score;
+            document.getElementById('health-number').style.color = scoreColor;
+            document.getElementById('health-label').textContent = score >= 70 ? 'Excellent' : score >= 40 ? 'Growing' : 'Getting Started';
+
+            // Render factors
+            const factors = [
+                { name: 'Profile Engagement', value: engagementPct, color: '#2196F3' },
+                { name: 'Event Attendance', value: attendancePct, color: '#4CAF50' },
+                { name: 'Chat Activity', value: Math.min(chatPct, 100), color: '#F59E0B' },
+                { name: 'Poll Participation', value: Math.min(pollPct, 100), color: '#8B5CF6' },
+            ];
+            document.getElementById('health-factors').innerHTML = factors.map(f => `
+                <div class="health-factor">
+                    <span class="factor-name">${f.name}</span>
+                    <div class="factor-bar"><div class="fill" style="width:${f.value}%;background:${f.color}"></div></div>
+                    <span class="factor-value">${f.value}%</span>
+                </div>
+            `).join('');
+        }
+
+        // --- Growth Chart ---
+        function loadAnalyticsGrowthChart() {
+            if (chartInstances['analytics-growth-chart']) chartInstances['analytics-growth-chart'].destroy();
+            const ctx = document.getElementById('analytics-growth-chart');
+            if (!ctx) return;
+
+            let filtered = allResidents;
+            if (analyticsDateRange > 0) {
+                const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - analyticsDateRange);
+                filtered = allResidents.filter(r => new Date(r.created_at) >= cutoff);
+            }
+
+            const sorted = [...allResidents].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            const labels = [];
+            const cumData = [];
+            let running = 0;
+
+            const weeks = analyticsDateRange > 0 ? Math.ceil(analyticsDateRange / 7) : 24;
+            const now = new Date();
+            for (let i = weeks - 1; i >= 0; i--) {
+                const weekEnd = new Date(now); weekEnd.setDate(weekEnd.getDate() - (i * 7));
+                labels.push(weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                const count = sorted.filter(r => new Date(r.created_at) <= weekEnd).length;
+                cumData.push(count);
+            }
+
+            chartInstances['analytics-growth-chart'] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Total Residents',
+                        data: cumData,
+                        borderColor: '#2196F3',
+                        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } }
+                }
+            });
+        }
+
+        // --- Attendance Chart ---
+        async function loadAttendanceChart() {
+            if (chartInstances['analytics-attendance-chart']) chartInstances['analytics-attendance-chart'].destroy();
+            const ctx = document.getElementById('analytics-attendance-chart');
+            if (!ctx) return;
+
+            const propNames = myProperties.filter(p => p.status === 'approved').map(p => p.name);
+            const { data: events } = await db.from('events').select('id, capacity, building_name, location');
+            const myEvts = (events || []).filter(e => propNames.some(pn => e.building_name === pn || (e.location && e.location.includes(pn))));
+            const { data: att } = await db.from('event_attendees').select('event_id');
+
+            let totalCap = 0, totalAtt = 0;
+            myEvts.forEach(e => {
+                totalCap += e.capacity || 50;
+                totalAtt += (att || []).filter(a => a.event_id === e.id).length;
+            });
+
+            const available = Math.max(0, totalCap - totalAtt);
+
+            chartInstances['analytics-attendance-chart'] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Filled', 'Available'],
+                    datasets: [{
+                        data: [totalAtt, available],
+                        backgroundColor: ['#4CAF50', '#E2E8F0'],
+                        borderWidth: 0,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '70%',
+                    plugins: { legend: { position: 'bottom', labels: { padding: 12 } } }
+                }
+            });
+
+            // Update avg attendance stat
+            const avg = myEvts.length ? Math.round(totalAtt / myEvts.length) : 0;
+            document.getElementById('stat-avg-attendance').textContent = avg || '—';
+        }
+
+        // --- Interests Chart ---
+        function loadAnalyticsInterestsChart() {
+            buildInterestsChart('analytics-interests-chart', allResidents);
+        }
+
+        // --- Categories Chart ---
+        async function loadCategoriesChart() {
+            if (chartInstances['analytics-categories-chart']) chartInstances['analytics-categories-chart'].destroy();
+            const ctx = document.getElementById('analytics-categories-chart');
+            if (!ctx) return;
+
+            const { data: events } = await db.from('events').select('id, category');
+            const { data: att } = await db.from('event_attendees').select('event_id');
+
+            const catCounts = {};
+            (events || []).forEach(e => {
+                const cat = e.category || 'Other';
+                const count = (att || []).filter(a => a.event_id === e.id).length;
+                catCounts[cat] = (catCounts[cat] || 0) + count;
+            });
+
+            const sorted = Object.entries(catCounts).sort((a, b) => b[1] - a[1]);
+            if (!sorted.length) return;
+
+            chartInstances['analytics-categories-chart'] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sorted.map(s => s[0]),
+                    datasets: [{
+                        label: 'Attendees',
+                        data: sorted.map(s => s[1]),
+                        backgroundColor: CHART_COLORS.slice(0, sorted.length),
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+        }
+
+        // --- Move-In Chart ---
+        function loadMoveInChart() {
+            if (chartInstances['analytics-movein-chart']) chartInstances['analytics-movein-chart'].destroy();
+            const ctx = document.getElementById('analytics-movein-chart');
+            if (!ctx) return;
+
+            const withMoveIn = allResidents.filter(r => r.move_in_date);
+            if (!withMoveIn.length) {
+                ctx.parentElement.querySelector('.chart-subtitle').textContent = 'No move-in date data yet';
+                return;
+            }
+
+            const sorted = [...withMoveIn].sort((a, b) => new Date(a.move_in_date) - new Date(b.move_in_date));
+            const monthCounts = {};
+            sorted.forEach(r => {
+                const d = new Date(r.move_in_date);
+                const key = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+                monthCounts[key] = (monthCounts[key] || 0) + 1;
+            });
+
+            chartInstances['analytics-movein-chart'] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(monthCounts),
+                    datasets: [{
+                        label: 'Move-Ins',
+                        data: Object.values(monthCounts),
+                        backgroundColor: '#8B5CF6',
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } }
+                }
+            });
+        }
+
+        // --- Chat Chart ---
+        async function loadChatChart() {
+            if (chartInstances['analytics-chat-chart']) chartInstances['analytics-chat-chart'].destroy();
+            const ctx = document.getElementById('analytics-chat-chart');
+            if (!ctx) return;
+
+            try {
+                const propNames = myProperties.filter(p => p.status === 'approved').map(p => p.name);
+                const { data: rooms } = await db.from('chat_rooms').select('id').eq('type', 'building').in('building_name', propNames);
+                if (!rooms?.length) {
+                    ctx.parentElement.querySelector('.chart-subtitle').textContent = 'No building chat data yet';
+                    return;
+                }
+
+                const roomIds = rooms.map(r => r.id);
+                const { data: msgs } = await db.from('chat_messages').select('created_at').in('chat_room_id', roomIds).order('created_at', { ascending: true });
+
+                if (!msgs?.length) return;
+
+                const weeks = analyticsDateRange > 0 ? Math.ceil(analyticsDateRange / 7) : 12;
+                const now = new Date();
+                const labels = [];
+                const data = [];
+
+                for (let i = weeks - 1; i >= 0; i--) {
+                    const weekStart = new Date(now); weekStart.setDate(weekStart.getDate() - ((i + 1) * 7));
+                    const weekEnd = new Date(now); weekEnd.setDate(weekEnd.getDate() - (i * 7));
+                    labels.push(weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                    const count = msgs.filter(m => {
+                        const d = new Date(m.created_at);
+                        return d >= weekStart && d < weekEnd;
+                    }).length;
+                    data.push(count);
+                }
+
+                chartInstances['analytics-chat-chart'] = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Messages',
+                            data,
+                            backgroundColor: '#14B8A6',
+                            borderRadius: 6,
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } }
+                    }
+                });
+            } catch (e) {
+                console.warn('Chat chart error:', e);
+            }
+        }
+
+        // =============================================
+        // AVAILABILITY (shared logic)
+        // =============================================
+        const TIME_SLOTS = [
+            { label: '5a–9a', start: '05:00', end: '09:00' },
+            { label: '9a–2p', start: '09:00', end: '14:00' },
+            { label: '2p–5p', start: '14:00', end: '17:00' },
+            { label: '5p–10p', start: '17:00', end: '22:00' },
+        ];
+        const DAY_DISPLAY_ORDER = [6, 0, 1, 2, 3, 4, 5];
+        const DAY_NAMES_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const DAY_NAMES_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        async function computeAvailability() {
+            const counts = {};
+            for (let d = 0; d < 7; d++) { counts[d] = [0, 0, 0, 0]; }
+            let totalRespondents = 0;
+            const residentIds = allResidents.map(r => r.id);
+            if (!residentIds.length) return { counts, totalRespondents, maxCount: 0 };
+
+            let usedSlots = false;
+            try {
+                const { data: slots, error } = await db.from('availability_slots').select('user_id, day_of_week, start_time, end_time').in('user_id', residentIds);
+                if (!error && slots?.length > 0) {
+                    usedSlots = true;
+                    const uniqueUsers = new Set();
+                    slots.forEach(s => {
+                        uniqueUsers.add(s.user_id);
+                        const d = s.day_of_week;
+                        for (let t = 0; t < TIME_SLOTS.length; t++) {
+                            if (s.start_time === TIME_SLOTS[t].start && s.end_time === TIME_SLOTS[t].end) {
+                                counts[d][t]++;
+                            }
+                        }
+                    });
+                    totalRespondents = uniqueUsers.size;
+                }
+            } catch (e) { console.warn('Slots error:', e); }
+
+            if (!usedSlots) {
+                const textDayMap = { 'sunday': 6, 'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3, 'friday': 4, 'saturday': 5 };
+                const textTimeMap = { '5am - 9am': 0, '5am-9am': 0, '9am - 2pm': 1, '9am-2pm': 1, '2pm - 5pm': 2, '2pm-5pm': 2, '5pm - 10pm': 3, '5pm-10pm': 3 };
+                allResidents.forEach(u => {
+                    if (!u.availability) return;
+                    totalRespondents++;
+                    u.availability.split(';').forEach(part => {
+                        const ci = part.indexOf(':');
+                        if (ci < 0) return;
+                        const dayIdx = textDayMap[part.substring(0, ci).trim().toLowerCase()];
+                        if (dayIdx === undefined) return;
+                        part.substring(ci + 1).split(',').forEach(range => {
+                            const tIdx = textTimeMap[range.trim()];
+                            if (tIdx !== undefined) counts[dayIdx][tIdx]++;
+                        });
+                    });
+                });
+            }
+
+            let maxCount = 0;
+            for (let d = 0; d < 7; d++) for (let t = 0; t < 4; t++) if (counts[d][t] > maxCount) maxCount = counts[d][t];
+
+            availabilityCounts = { counts, totalRespondents, maxCount };
+            return availabilityCounts;
+        }
+
+        function renderAvailGrid(gridId, bestId, avail) {
+            const grid = document.getElementById(gridId);
+            grid.innerHTML = '<div></div>' + TIME_SLOTS.map(t => '<div class="avail-header">' + t.label + '</div>').join('');
+
+            let bestDay = -1, bestTime = -1, bestCount = 0;
+            const topSlots = [];
+
+            DAY_DISPLAY_ORDER.forEach((d, di) => {
+                grid.innerHTML += '<div class="avail-day">' + DAY_NAMES_SHORT[di] + '</div>';
+                for (let t = 0; t < 4; t++) {
+                    const c = avail.counts[d][t];
+                    const heat = avail.maxCount === 0 ? 0 : Math.min(5, Math.ceil((c / avail.maxCount) * 5));
+                    grid.innerHTML += '<div class="avail-cell heat-' + heat + '" title="' + c + ' resident' + (c !== 1 ? 's' : '') + '">' + c + '</div>';
+                    topSlots.push({ day: di, dayIdx: d, time: t, count: c });
+                    if (c > bestCount) { bestCount = c; bestDay = di; bestTime = t; }
+                }
+            });
+
+            const bestEl = document.getElementById(bestId);
+            if (bestCount > 0) {
+                bestEl.innerHTML = 'Best time: <strong>' + DAY_NAMES_FULL[bestDay] + ' ' + TIME_SLOTS[bestTime].label + '</strong> (' + bestCount + ' resident' + (bestCount !== 1 ? 's' : '') + ' available)';
+                bestEl.style.display = 'block';
+            } else {
+                bestEl.style.display = 'none';
+            }
+
+            return topSlots.sort((a, b) => b.count - a.count).slice(0, 3);
+        }
+
+        // Analytics availability
+        async function loadAnalyticsAvailability() {
+            const avail = await computeAvailability();
+            renderAvailGrid('analytics-avail-grid', 'analytics-avail-best', avail);
+        }
+
+        // Event modal availability
+        async function loadEventAvailability() {
+            const avail = availabilityCounts || await computeAvailability();
+            const topSlots = renderAvailGrid('evt-avail-grid', 'evt-avail-best', avail);
+            document.getElementById('evt-avail-count').textContent = avail.totalRespondents + ' resident' + (avail.totalRespondents !== 1 ? 's' : '') + ' responded';
+
+            // Show top 3 suggested times
+            const suggestedEl = document.getElementById('evt-suggested-times');
+            if (topSlots.filter(s => s.count > 0).length) {
+                suggestedEl.innerHTML = '<p style="font-size:12px;font-weight:600;color:var(--gray-600);margin-top:12px;margin-bottom:6px">Suggested Times:</p><div class="suggested-times">' +
+                    topSlots.filter(s => s.count > 0).map(s =>
+                        `<div class="suggested-time">${DAY_NAMES_FULL[s.day]} ${TIME_SLOTS[s.time].label} — <span class="count">${s.count}</span> available</div>`
+                    ).join('') + '</div>';
+            } else {
+                suggestedEl.innerHTML = '';
+            }
+        }
+
+        function toggleEventAvailability() {
+            const content = document.getElementById('evt-avail-content');
+            content.classList.toggle('open');
+        }
+
+        // =============================================
+        // DAILY POLLS (Question of the Day)
+        // =============================================
+        let pollOptionCount = 0;
+
+        function openPollModal() {
+            document.getElementById('poll-question').value = '';
+            document.getElementById('poll-date').value = new Date().toISOString().split('T')[0];
+            pollOptionCount = 0;
+            document.getElementById('poll-options-list').innerHTML = '';
+            addPollOption(); addPollOption(); // Start with 2 options
+
+            const sel = document.getElementById('poll-property');
+            const approvedProps = myProperties.filter(p => p.status === 'approved');
+            sel.innerHTML = '<option value="">All properties</option>' +
+                approvedProps.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+
+            document.getElementById('poll-modal').classList.add('active');
+        }
+
+        function addPollOption() {
+            if (pollOptionCount >= 6) return;
+            pollOptionCount++;
+            const div = document.createElement('div');
+            div.style.cssText = 'display:flex;gap:8px;margin-bottom:8px;align-items:center';
+            div.innerHTML = `<input type="text" class="poll-option-input" placeholder="Option ${pollOptionCount}" style="flex:1;padding:10px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px">
+                <button type="button" onclick="this.parentElement.remove();pollOptionCount--" style="background:none;border:none;color:var(--gray-400);cursor:pointer;font-size:18px">&times;</button>`;
+            document.getElementById('poll-options-list').appendChild(div);
+        }
+
+        async function savePoll(e) {
+            e.preventDefault();
+            const options = [];
+            document.querySelectorAll('.poll-option-input').forEach(inp => {
+                if (inp.value.trim()) options.push(inp.value.trim());
+            });
+
+            if (options.length < 2) { showToast('Add at least 2 options', 'error'); return; }
+
+            const question = document.getElementById('poll-question').value;
+            const building = document.getElementById('poll-property').value || null;
+            const date = document.getElementById('poll-date').value;
+
+            try {
+                // Insert into daily_polls (the existing table used by the app)
+                const { error } = await db.from('daily_polls').insert({
+                    question,
+                    options: JSON.stringify(options.map((text, i) => ({ index: i, text }))),
+                    active_date: date,
+                    building_name: building,
+                });
+                if (error) throw error;
+                showToast('Poll created!', 'success');
+                closeModal('poll-modal');
+                loadPolls();
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        }
+
+        async function loadPolls() {
+            try {
+                const propNames = myProperties.map(p => p.name);
+                const { data: polls } = await db.from('daily_polls').select('*').order('active_date', { ascending: false });
+
+                // Filter to polls for this manager's properties or global polls
+                const myPolls = (polls || []).filter(p => !p.building_name || propNames.includes(p.building_name));
+
+                // Get vote counts
+                const { data: votes } = await db.from('poll_votes').select('poll_id');
+                const voteCounts = {};
+                (votes || []).forEach(v => { voteCounts[v.poll_id] = (voteCounts[v.poll_id] || 0) + 1; });
+
+                const tbody = document.getElementById('polls-table');
+                if (!myPolls.length) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="empty-row">No polls yet. Click "+ Create Poll" to get started.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = myPolls.map(p => {
+                    let opts = [];
+                    try { opts = typeof p.options === 'string' ? JSON.parse(p.options) : p.options; } catch(e) {}
+                    const optLabels = opts.map(o => typeof o === 'string' ? o : o.text).slice(0, 3);
+                    const isToday = p.active_date === new Date().toISOString().split('T')[0];
+                    const isPast = new Date(p.active_date) < new Date().setHours(0,0,0,0);
+
+                    return `
+                    <tr style="${isPast ? 'opacity:0.6' : ''}">
+                        <td><strong>${p.question}</strong></td>
+                        <td>${p.building_name || '<span style="color:var(--gray-400)">All</span>'}</td>
+                        <td><div class="amenity-chips">${optLabels.map(o => `<span class="amenity-chip">${o}</span>`).join('')}${opts.length > 3 ? `<span class="amenity-chip">+${opts.length - 3}</span>` : ''}</div></td>
+                        <td><span class="tag tag-blue">${voteCounts[p.id] || 0}</span></td>
+                        <td>${new Date(p.active_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
+                        <td>${isToday ? '<span class="tag tag-green">Active</span>' : isPast ? '<span class="tag" style="background:var(--gray-100);color:var(--gray-500)">Past</span>' : '<span class="tag tag-orange">Scheduled</span>'}</td>
+                        <td><button class="btn btn-danger btn-sm" onclick="deletePoll('${p.id}')">Delete</button></td>
+                    </tr>`;
+                }).join('');
+            } catch (err) { console.error('Polls error:', err); }
+        }
+
+        async function deletePoll(id) {
+            if (!confirm('Delete this poll?')) return;
+            try {
+                const { error } = await db.from('daily_polls').delete().eq('id', id);
+                if (error) throw error;
+                showToast('Poll deleted', 'success');
+                loadPolls();
+            } catch (err) { showToast('Error: ' + err.message, 'error'); }
+        }
+
+        // =============================================
+        // REFERRAL PROGRAM
+        // =============================================
+        function openReferralModal(program = null) {
+            document.getElementById('referral-modal-title').textContent = program ? 'Edit Referral Program' : 'Set Up Referral Program';
+            document.getElementById('ref-submit-btn').textContent = program ? 'Save Changes' : 'Save Program';
+            document.getElementById('ref-prog-id').value = program?.id || '';
+            document.getElementById('ref-referrer-reward').value = program?.referrer_reward || '';
+            document.getElementById('ref-referee-reward').value = program?.referee_reward || '';
+            document.getElementById('ref-description').value = program?.description || '';
+
+            const sel = document.getElementById('ref-property');
+            const approvedProps = myProperties.filter(p => p.status === 'approved');
+            sel.innerHTML = '<option value="">Select property</option>' +
+                approvedProps.map(p => `<option value="${p.id}" ${program?.property_id === p.id ? 'selected' : ''}>${p.name}</option>`).join('');
+
+            document.getElementById('referral-modal').classList.add('active');
+        }
+
+        async function saveReferralProgram(e) {
+            e.preventDefault();
+            const id = document.getElementById('ref-prog-id').value;
+            const data = {
+                property_id: document.getElementById('ref-property').value,
+                manager_email: currentUser.email,
+                referrer_reward: parseFloat(document.getElementById('ref-referrer-reward').value),
+                referee_reward: parseFloat(document.getElementById('ref-referee-reward').value),
+                description: document.getElementById('ref-description').value || null,
+                is_active: true,
+            };
+
+            try {
+                if (id) {
+                    const { error } = await db.from('referral_programs').update(data).eq('id', id);
+                    if (error) throw error;
+                    showToast('Program updated!', 'success');
+                } else {
+                    const { error } = await db.from('referral_programs').insert(data);
+                    if (error) throw error;
+                    showToast('Referral program created!', 'success');
+                }
+                closeModal('referral-modal');
+                loadReferrals();
+            } catch (err) { showToast('Error: ' + err.message, 'error'); }
+        }
+
+        async function loadReferrals() {
+            try {
+                const { data: programs } = await db.from('referral_programs').select('*, properties(name)')
+                    .eq('manager_email', currentUser.email).order('created_at', { ascending: false });
+
+                const container = document.getElementById('referral-programs-container');
+                if (!programs?.length) {
+                    container.innerHTML = '<div class="empty-state"><h3>No Referral Program Yet</h3><p>Set up a referral program to reward residents who bring in new tenants.</p><button class="btn btn-primary" onclick="openReferralModal()">Set Up Program</button></div>';
+                } else {
+                    container.innerHTML = '<div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">' + programs.map(p => `
+                        <div class="card" style="margin-bottom:0">
+                            <div class="card-body">
+                                <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+                                    <div>
+                                        <h3 style="font-size:16px;font-weight:600">${p.properties?.name || 'Unknown Property'}</h3>
+                                        <span class="tag ${p.is_active ? 'tag-green' : 'tag-orange'}">${p.is_active ? 'Active' : 'Paused'}</span>
+                                    </div>
+                                    <button class="btn btn-secondary btn-sm" onclick='openReferralModal(${JSON.stringify(p).replace(/'/g, "\\'")})'>Edit</button>
+                                </div>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px">
+                                    <div style="background:var(--green-light);padding:12px;border-radius:8px;text-align:center">
+                                        <div style="font-size:24px;font-weight:700;color:var(--green)">$${parseFloat(p.referrer_reward).toFixed(0)}</div>
+                                        <div style="font-size:12px;color:var(--gray-500)">Referrer Gets</div>
+                                    </div>
+                                    <div style="background:var(--blue-light);padding:12px;border-radius:8px;text-align:center">
+                                        <div style="font-size:24px;font-weight:700;color:var(--blue)">$${parseFloat(p.referee_reward).toFixed(0)}</div>
+                                        <div style="font-size:12px;color:var(--gray-500)">New Tenant Gets</div>
+                                    </div>
+                                </div>
+                                ${p.description ? `<p style="font-size:13px;color:var(--gray-500);margin-top:12px">${p.description}</p>` : ''}
+                            </div>
+                        </div>
+                    `).join('') + '</div>';
+                }
+
+                // Load referrals
+                const progIds = (programs || []).map(p => p.id);
+                if (progIds.length) {
+                    const { data: refs } = await db.from('referrals').select('*, referral_programs(property_id, properties(name))')
+                        .in('program_id', progIds).order('created_at', { ascending: false });
+
+                    const tbody = document.getElementById('referrals-table');
+                    if (!refs?.length) {
+                        tbody.innerHTML = '<tr><td colspan="8" class="empty-row">No referrals yet. Share your referral program with residents!</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = refs.map(r => `
+                        <tr>
+                            <td>${r.referrer_id?.substring(0, 8) || '-'}</td>
+                            <td><strong>${r.referee_name || '-'}</strong><br><span style="font-size:12px;color:var(--gray-400)">${r.referee_email || r.referee_phone || ''}</span></td>
+                            <td>${r.referral_programs?.properties?.name || '-'}</td>
+                            <td><span class="tag ${r.status === 'completed' ? 'tag-green' : r.status === 'pending' ? 'tag-orange' : 'tag-blue'}">${r.status}</span></td>
+                            <td>${r.referrer_paid ? '<span class="tag tag-green">Paid</span>' : '<button class="btn btn-sm btn-secondary" onclick="markPaid(\'${r.id}\',\'referrer\')">Mark Paid</button>'}</td>
+                            <td>${r.referee_paid ? '<span class="tag tag-green">Paid</span>' : '<button class="btn btn-sm btn-secondary" onclick="markPaid(\'${r.id}\',\'referee\')">Mark Paid</button>'}</td>
+                            <td>${new Date(r.created_at).toLocaleDateString()}</td>
+                            <td>
+                                <select onchange="updateReferralStatus('${r.id}', this.value)" style="padding:4px 8px;border:1px solid var(--gray-200);border-radius:6px;font-size:12px">
+                                    <option value="pending" ${r.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="verified" ${r.status === 'verified' ? 'selected' : ''}>Verified</option>
+                                    <option value="completed" ${r.status === 'completed' ? 'selected' : ''}>Completed</option>
+                                    <option value="rejected" ${r.status === 'rejected' ? 'selected' : ''}>Rejected</option>
+                                </select>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) { console.error('Referrals error:', err); }
+        }
+
+        async function markPaid(refId, type) {
+            try {
+                const update = type === 'referrer' ? { referrer_paid: true } : { referee_paid: true };
+                const { error } = await db.from('referrals').update(update).eq('id', refId);
+                if (error) throw error;
+                showToast(`${type === 'referrer' ? 'Referrer' : 'New tenant'} marked as paid`, 'success');
+                loadReferrals();
+            } catch (err) { showToast('Error: ' + err.message, 'error'); }
+        }
+
+        async function updateReferralStatus(refId, status) {
+            try {
+                const { error } = await db.from('referrals').update({ status }).eq('id', refId);
+                if (error) throw error;
+                showToast('Status updated', 'success');
+            } catch (err) { showToast('Error: ' + err.message, 'error'); }
+        }
+
+        // =============================================
+        // GOOGLE REVIEWS
+        // =============================================
+        function openReviewSetupModal(config = null) {
+            document.getElementById('rev-id').value = config?.id || '';
+            document.getElementById('rev-url').value = config?.google_review_url || '';
+            document.getElementById('rev-message').value = config?.message_template || 'Hi {name}! We hope you\'re loving life at {property}. Would you mind leaving us a quick Google review? It really helps us attract great neighbors like you!';
+
+            const sel = document.getElementById('rev-property');
+            const approvedProps = myProperties.filter(p => p.status === 'approved');
+            sel.innerHTML = '<option value="">Select property</option>' +
+                approvedProps.map(p => `<option value="${p.id}" ${config?.property_id === p.id ? 'selected' : ''}>${p.name}</option>`).join('');
+
+            document.getElementById('review-setup-modal').classList.add('active');
+        }
+
+        async function saveReviewConfig(e) {
+            e.preventDefault();
+            const id = document.getElementById('rev-id').value;
+            const data = {
+                property_id: document.getElementById('rev-property').value,
+                manager_email: currentUser.email,
+                google_review_url: document.getElementById('rev-url').value,
+                message_template: document.getElementById('rev-message').value || null,
+            };
+
+            try {
+                if (id) {
+                    const { error } = await db.from('review_requests').update(data).eq('id', id);
+                    if (error) throw error;
+                    showToast('Review config updated!', 'success');
+                } else {
+                    const { error } = await db.from('review_requests').insert(data);
+                    if (error) throw error;
+                    showToast('Review setup saved!', 'success');
+                }
+                closeModal('review-setup-modal');
+                loadReviews();
+            } catch (err) { showToast('Error: ' + err.message, 'error'); }
+        }
+
+        async function loadReviews() {
+            try {
+                const { data: configs } = await db.from('review_requests').select('*, properties(name)')
+                    .eq('manager_email', currentUser.email);
+
+                const container = document.getElementById('review-config-container');
+                if (!configs?.length) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                container.innerHTML = '<div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">' + configs.map(c => `
+                    <div class="card" style="margin-bottom:0">
+                        <div class="card-body">
+                            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+                                <div>
+                                    <h3 style="font-size:16px;font-weight:600">${c.properties?.name || 'Unknown'}</h3>
+                                    <p style="font-size:12px;color:var(--gray-400);margin-top:2px">${c.sent_count || 0} prompts sent</p>
+                                </div>
+                                <div style="display:flex;gap:6px">
+                                    <button class="btn btn-secondary btn-sm" onclick='openReviewSetupModal(${JSON.stringify(c).replace(/'/g, "\\'")})'>Edit</button>
+                                    <button class="btn btn-primary btn-sm" onclick="sendReviewPrompts('${c.id}', '${c.properties?.name}')">Send Prompts</button>
+                                </div>
+                            </div>
+                            <div class="copy-box" style="margin-top:8px">
+                                <code style="font-size:12px">${c.google_review_url}</code>
+                                <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${c.google_review_url}').then(()=>showToast('Copied!','success'))">Copy</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('') + '</div>';
+            } catch (err) { console.error('Reviews error:', err); }
+        }
+
+        async function sendReviewPrompts(configId, propertyName) {
+            // In a real app this would send push notifications or emails.
+            // For now, we update the sent count and show confirmation.
+            const propNames = myProperties.filter(p => p.status === 'approved').map(p => p.name);
+            const residentsInProperty = allResidents.filter(r => r.building_name === propertyName);
+
+            if (!residentsInProperty.length) {
+                showToast('No residents in this property yet', 'error');
+                return;
+            }
+
+            if (!confirm(`Send review prompts to ${residentsInProperty.length} residents at ${propertyName}?`)) return;
+
+            try {
+                const { error } = await db.from('review_requests').update({
+                    sent_count: residentsInProperty.length,
+                    last_sent_at: new Date().toISOString()
+                }).eq('id', configId);
+                if (error) throw error;
+                showToast(`Review prompts queued for ${residentsInProperty.length} residents!`, 'success');
+                loadReviews();
+            } catch (err) { showToast('Error: ' + err.message, 'error'); }
+        }
+
+        // =============================================
+        // CONTENT MODERATION
+        // =============================================
+        async function loadModeration() {
+            try {
+                const propNames = myProperties.filter(p => p.status === 'approved').map(p => p.name);
+
+                // Get building chat rooms for manager's properties
+                const { data: rooms } = await db.from('chat_rooms').select('id, building_name, name')
+                    .eq('type', 'building').in('building_name', propNames);
+
+                if (!rooms?.length) {
+                    document.getElementById('moderation-table').innerHTML = '<tr><td colspan="7" class="empty-row">No building chat rooms found</td></tr>';
+                    return;
+                }
+
+                const roomIds = rooms.map(r => r.id);
+                const roomMap = {};
+                rooms.forEach(r => { roomMap[r.id] = r; });
+
+                // Get flagged messages
+                const { data: flags } = await db.from('chat_flags').select('*')
+                    .in('chat_room_id', roomIds)
+                    .order('created_at', { ascending: false });
+
+                // Update stats
+                const pending = (flags || []).filter(f => f.status === 'pending').length;
+                const resolved = (flags || []).filter(f => f.status === 'resolved').length;
+                const removed = (flags || []).filter(f => f.status === 'removed').length;
+                document.getElementById('mod-pending').textContent = pending;
+                document.getElementById('mod-resolved').textContent = resolved;
+                document.getElementById('mod-removed').textContent = removed;
+
+                const tbody = document.getElementById('moderation-table');
+                if (!flags?.length) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="empty-row">No flagged messages — your community is healthy!</td></tr>';
+                    return;
+                }
+
+                // Get message content
+                const msgIds = flags.map(f => f.message_id);
+                const { data: messages } = await db.from('chat_messages').select('id, content, sender_id').in('id', msgIds);
+                const msgMap = {};
+                (messages || []).forEach(m => { msgMap[m.id] = m; });
+
+                // Get sender names
+                const senderIds = [...new Set((messages || []).map(m => m.sender_id))];
+                let senderMap = {};
+                if (senderIds.length) {
+                    const { data: senders } = await db.from('users').select('id, name').in('id', senderIds);
+                    (senders || []).forEach(s => { senderMap[s.id] = s.name; });
+                }
+
+                tbody.innerHTML = flags.map(f => {
+                    const msg = msgMap[f.message_id] || {};
+                    const room = roomMap[f.chat_room_id] || {};
+                    const statusClass = f.status === 'pending' ? 'tag-orange' : f.status === 'resolved' ? 'tag-green' : 'tag-red';
+                    return `
+                    <tr>
+                        <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${msg.content || '<span style="color:var(--gray-400)">[deleted]</span>'}</td>
+                        <td>${senderMap[msg.sender_id] || msg.sender_id?.substring(0, 8) || '-'}</td>
+                        <td>${room.building_name || room.name || '-'}</td>
+                        <td>${f.reason || '-'}</td>
+                        <td>${new Date(f.created_at).toLocaleDateString()}</td>
+                        <td><span class="tag ${statusClass}">${f.status}</span></td>
+                        <td>
+                            ${f.status === 'pending' ? `
+                                <button class="btn btn-sm" style="background:var(--green-light);color:#166534" onclick="resolveFlag('${f.id}','resolved')">Dismiss</button>
+                                <button class="btn btn-danger btn-sm" onclick="resolveFlag('${f.id}','removed')">Remove</button>
+                            ` : ''}
+                        </td>
+                    </tr>`;
+                }).join('');
+            } catch (err) { console.error('Moderation error:', err); }
+        }
+
+        async function resolveFlag(flagId, status) {
+            try {
+                const { error } = await db.from('chat_flags').update({
+                    status,
+                    reviewed_by: currentUser.email,
+                    reviewed_at: new Date().toISOString()
+                }).eq('id', flagId);
+                if (error) throw error;
+
+                if (status === 'removed') {
+                    // Also delete the message
+                    const { data: flag } = await db.from('chat_flags').select('message_id').eq('id', flagId).single();
+                    if (flag?.message_id) {
+                        await db.from('chat_messages').delete().eq('id', flag.message_id);
+                    }
+                }
+
+                showToast(status === 'removed' ? 'Message removed' : 'Flag dismissed', 'success');
+                loadModeration();
+            } catch (err) { showToast('Error: ' + err.message, 'error'); }
+        }
+
+        // =============================================
+        // MONTHLY REPORTS (PDF Export)
+        // =============================================
+        async function loadReportPreview() {
+            const preview = document.getElementById('report-preview');
+            const now = new Date();
+            const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            const approved = myProperties.filter(p => p.status === 'approved');
+
+            // Calculate metrics
+            const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const newRes = allResidents.filter(r => new Date(r.created_at) >= thirtyDaysAgo);
+            const engaged = allResidents.filter(r => r.interests?.length > 0);
+            const engRate = allResidents.length ? Math.round((engaged.length / allResidents.length) * 100) : 0;
+
+            // Top interests
+            const interestCounts = {};
+            allResidents.forEach(r => (r.interests || []).forEach(i => { interestCounts[i] = (interestCounts[i] || 0) + 1; }));
+            const topInterests = Object.entries(interestCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+            preview.innerHTML = `
+                <div style="max-width:700px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid var(--blue)">
+                        <div>
+                            <h2 style="font-size:22px;font-weight:700">Monthly Engagement Report</h2>
+                            <p style="color:var(--gray-500);font-size:14px">${monthName}</p>
+                        </div>
+                        <div style="text-align:right">
+                            <div style="font-size:20px;font-weight:700;color:var(--blue)">Sort PM</div>
+                            <div style="font-size:12px;color:var(--gray-400)">${currentUser.email}</div>
+                        </div>
+                    </div>
+
+                    <h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Overview</h3>
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
+                        <div style="background:var(--blue-light);padding:16px;border-radius:10px;text-align:center">
+                            <div style="font-size:28px;font-weight:700;color:var(--blue)">${approved.length}</div>
+                            <div style="font-size:12px;color:var(--gray-500)">Properties</div>
+                        </div>
+                        <div style="background:var(--green-light);padding:16px;border-radius:10px;text-align:center">
+                            <div style="font-size:28px;font-weight:700;color:#166534">${allResidents.length}</div>
+                            <div style="font-size:12px;color:var(--gray-500)">Total Residents</div>
+                        </div>
+                        <div style="background:var(--purple-light);padding:16px;border-radius:10px;text-align:center">
+                            <div style="font-size:28px;font-weight:700;color:var(--purple)">${newRes.length}</div>
+                            <div style="font-size:12px;color:var(--gray-500)">New This Month</div>
+                        </div>
+                    </div>
+
+                    <h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Engagement</h3>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+                        <div style="background:var(--gray-50);padding:16px;border-radius:10px">
+                            <div style="font-size:13px;color:var(--gray-500);margin-bottom:4px">Profile Completion Rate</div>
+                            <div style="font-size:24px;font-weight:700">${engRate}%</div>
+                            <div style="background:var(--gray-200);height:6px;border-radius:3px;margin-top:8px"><div style="background:var(--blue);height:100%;border-radius:3px;width:${engRate}%"></div></div>
+                        </div>
+                        <div style="background:var(--gray-50);padding:16px;border-radius:10px">
+                            <div style="font-size:13px;color:var(--gray-500);margin-bottom:4px">New Residents (30d)</div>
+                            <div style="font-size:24px;font-weight:700">${newRes.length}</div>
+                            <div style="font-size:12px;color:var(--gray-400);margin-top:8px">Avg ${(newRes.length / 4).toFixed(1)} per week</div>
+                        </div>
+                    </div>
+
+                    <h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Top Resident Interests</h3>
+                    <div style="margin-bottom:24px">
+                        ${topInterests.map(([name, count], i) => `
+                            <div style="display:flex;align-items:center;gap:12px;padding:8px 0;${i < topInterests.length - 1 ? 'border-bottom:1px solid var(--gray-100)' : ''}">
+                                <span style="font-size:14px;font-weight:500;flex:1">${name}</span>
+                                <span class="tag tag-blue">${count} residents</span>
+                            </div>
+                        `).join('')}
+                        ${!topInterests.length ? '<p style="color:var(--gray-400);font-size:14px">No interest data yet</p>' : ''}
+                    </div>
+
+                    <h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Properties Breakdown</h3>
+                    <table style="margin-bottom:16px">
+                        <thead><tr><th>Property</th><th>Residents</th><th>Status</th></tr></thead>
+                        <tbody>
+                            ${myProperties.map(p => {
+                                const resCount = allResidents.filter(r => r.building_name === p.name).length;
+                                return `<tr><td><strong>${p.name}</strong></td><td>${resCount}</td><td><span class="tag ${p.status === 'approved' ? 'tag-green' : 'tag-orange'}">${p.status}</span></td></tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        async function generateReport() {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const now = new Date();
+                const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                const approved = myProperties.filter(p => p.status === 'approved');
+
+                const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                const newRes = allResidents.filter(r => new Date(r.created_at) >= thirtyDaysAgo);
+                const engaged = allResidents.filter(r => r.interests?.length > 0);
+                const engRate = allResidents.length ? Math.round((engaged.length / allResidents.length) * 100) : 0;
+
+                // Header
+                doc.setFontSize(22);
+                doc.setTextColor(33, 150, 243);
+                doc.text('Sort PM', 14, 20);
+                doc.setFontSize(10);
+                doc.setTextColor(100);
+                doc.text('Monthly Engagement Report', 14, 27);
+                doc.text(monthName, 14, 33);
+                doc.text(currentUser.email, 196, 20, { align: 'right' });
+
+                doc.setDrawColor(33, 150, 243);
+                doc.setLineWidth(0.5);
+                doc.line(14, 37, 196, 37);
+
+                // Overview stats
+                let y = 47;
+                doc.setFontSize(14);
+                doc.setTextColor(0);
+                doc.text('Overview', 14, y);
+                y += 10;
+
+                doc.setFontSize(11);
+                doc.text(`Properties: ${approved.length}`, 14, y);
+                doc.text(`Total Residents: ${allResidents.length}`, 80, y);
+                doc.text(`New This Month: ${newRes.length}`, 150, y);
+                y += 12;
+
+                doc.text(`Profile Engagement: ${engRate}%`, 14, y);
+                doc.text(`Avg New/Week: ${(newRes.length / 4).toFixed(1)}`, 80, y);
+                y += 16;
+
+                // Properties table
+                doc.setFontSize(14);
+                doc.text('Properties Breakdown', 14, y);
+                y += 5;
+
+                const propRows = myProperties.map(p => {
+                    const resCount = allResidents.filter(r => r.building_name === p.name).length;
+                    return [p.name, p.address || '-', resCount.toString(), p.status];
+                });
+
+                doc.autoTable({
+                    startY: y,
+                    head: [['Property', 'Address', 'Residents', 'Status']],
+                    body: propRows,
+                    theme: 'striped',
+                    headStyles: { fillColor: [33, 150, 243] },
+                    margin: { left: 14 },
+                });
+                y = doc.lastAutoTable.finalY + 16;
+
+                // Top interests
+                const interestCounts = {};
+                allResidents.forEach(r => (r.interests || []).forEach(i => { interestCounts[i] = (interestCounts[i] || 0) + 1; }));
+                const topInterests = Object.entries(interestCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+                if (topInterests.length) {
+                    doc.setFontSize(14);
+                    doc.text('Top Resident Interests', 14, y);
+                    y += 5;
+
+                    doc.autoTable({
+                        startY: y,
+                        head: [['Interest', 'Residents']],
+                        body: topInterests.map(([name, count]) => [name, count.toString()]),
+                        theme: 'striped',
+                        headStyles: { fillColor: [139, 92, 246] },
+                        margin: { left: 14 },
+                    });
+                    y = doc.lastAutoTable.finalY + 16;
+                }
+
+                // Recent residents
+                if (newRes.length) {
+                    doc.setFontSize(14);
+                    doc.text('New Residents (Last 30 Days)', 14, y);
+                    y += 5;
+
+                    doc.autoTable({
+                        startY: y,
+                        head: [['Name', 'Property', 'Unit', 'Joined']],
+                        body: newRes.slice(0, 15).map(r => [
+                            r.name || 'Unknown',
+                            r.building_name || '-',
+                            r.unit_number || '-',
+                            new Date(r.created_at).toLocaleDateString()
+                        ]),
+                        theme: 'striped',
+                        headStyles: { fillColor: [76, 175, 80] },
+                        margin: { left: 14 },
+                    });
+                }
+
+                // Footer
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(9);
+                    doc.setTextColor(150);
+                    doc.text(`Generated by Sort PM — ${now.toLocaleDateString()}`, 14, 287);
+                    doc.text(`Page ${i} of ${pageCount}`, 196, 287, { align: 'right' });
+                }
+
+                doc.save(`Sort_Report_${monthName.replace(' ', '_')}.pdf`);
+                showToast('Report downloaded!', 'success');
+            } catch (err) {
+                console.error('PDF error:', err);
+                showToast('Error generating PDF: ' + err.message, 'error');
+            }
+        }
+
+        // All new features are loaded via loadAll() above
+    </script>
+</body>
+</html>
